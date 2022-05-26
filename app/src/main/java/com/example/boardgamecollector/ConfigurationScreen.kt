@@ -1,5 +1,6 @@
 package com.example.boardgamecollector
 
+import android.app.Activity
 import android.os.AsyncTask
 import android.os.Bundle
 import android.widget.Button
@@ -7,10 +8,7 @@ import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import java.io.File
-import java.io.FileNotFoundException
-import java.io.FileOutputStream
-import java.io.IOException
+import java.io.*
 import java.net.MalformedURLException
 import java.net.URL
 
@@ -24,17 +22,29 @@ class ConfigurationScreen : AppCompatActivity() {
         button.setOnClickListener { searchUser() }
     }
 
+    override fun finish() {
+        setResult(Activity.RESULT_OK)
+        super.finish()
+    }
+
     private fun searchUser() {
         val userName: EditText = findViewById(R.id.editTextUserName)
-        DBHandler.setUserName(userName.text.toString())
+        DBHandler.USER_NAME = userName.text.toString()
         userName.setText("")
         val xml = XmlDownloader()
         xml.execute()
     }
 
     private fun checkResult(){
-        if  (foundUser)
-            super.finish()
+        if  (foundUser) {
+            val sync = Synchronizer()
+            val result = sync.start("$filesDir")
+            Toast.makeText(applicationContext, result, Toast.LENGTH_SHORT).show()
+            if (result == "Synchronization complete")
+                finish()
+        }
+        else
+            DBHandler.USER_NAME = ""
     }
 
     @Suppress("DEPRECATION")
@@ -56,15 +66,14 @@ class ConfigurationScreen : AppCompatActivity() {
             val p =  findViewById<ProgressBar>(R.id.progressBar)
             p.visibility = android.view.View.GONE
             Toast.makeText(applicationContext, result, Toast.LENGTH_LONG).show()
-            foundUser = result == "Success"
+            foundUser = result == "User Found"
             checkResult()
         }
 
         @Deprecated("Deprecated in Java")
         override fun doInBackground(vararg p0: String?): String {
             try {
-                val url = URL("https://boardgamegeek.com/xmlapi2/user?name=" + DBHandler.getUserName())
-                //val url = URL("https://boardgamegeek.com/xmlapi2/user?name=loutre_on_fire")
+                val url = URL("https://boardgamegeek.com/xmlapi2/user?name=" + DBHandler.USER_NAME)
                 val connection = url.openConnection()
                 connection.connect()
                 val isStream = url.openStream()
@@ -82,8 +91,10 @@ class ConfigurationScreen : AppCompatActivity() {
                 }
                 isStream.close()
                 fos.close()
-                return if (total > 548)
-                    "Success"
+
+                val xml = XmlAnalyzer()
+                return if (xml.checkUser(FileInputStream("$directory/user.xml"))                )
+                    "User Found"
                 else "User Not Found"
             } catch (e: MalformedURLException){
                 return "Malformed URL"
