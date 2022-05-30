@@ -51,6 +51,8 @@ DATABASE_NAME, factory, DATABASE_VERSION) {
                 COLUMN_TITLE + " TEXT, " + COLUMN_RANK + " INTEGER, " + COLUMN_DATE +
                 " DATE " + ")" )
         db.execSQL(createHistoricalPositionTable)
+
+        db.close()
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
@@ -80,6 +82,7 @@ DATABASE_NAME, factory, DATABASE_VERSION) {
         db.execSQL("DROP TABLE IF EXISTS $TABLE_GAMES")
         db.execSQL("DROP TABLE IF EXISTS $TABLE_EXTENSIONS")
         db.execSQL("DROP TABLE IF EXISTS $TABLE_HISTORICAL")
+        db.close()
         val file = File("$filesDir/user.txt")
         file.delete()
         GAMES_COUNT = 0
@@ -111,7 +114,9 @@ DATABASE_NAME, factory, DATABASE_VERSION) {
 
     fun findGame(pos:Int, order:String):Game? {
 
-        val query = "SELECT * FROM  $TABLE_GAMES $order"
+        var query = "SELECT * FROM  $TABLE_GAMES ORDER BY $order"
+        if (order == COLUMN_RELEASED)
+            query += " DESC"
         val db = this.writableDatabase
         val cursor = db.rawQuery(query, null)
         var game: Game? = null

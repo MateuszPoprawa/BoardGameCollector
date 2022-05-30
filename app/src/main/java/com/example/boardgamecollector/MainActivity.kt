@@ -36,6 +36,7 @@ class MainActivity : AppCompatActivity() {
 
         }
         setInfo()
+        db.close()
 
         findViewById<Button>(R.id.gameList_Button).setOnClickListener {
             val intent = Intent(this, GameList::class.java)
@@ -54,6 +55,7 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<Button>(R.id.clear_Button).setOnClickListener {
             db.deleteDB("$filesDir")
+            db.close()
             finish()
             exitProcess(0)
         }
@@ -64,6 +66,7 @@ class MainActivity : AppCompatActivity() {
         if (result.resultCode == Activity.RESULT_OK) {
             val db = DBHandler(this, null, null, 1)
             db.readInfo("$filesDir")
+            db.close()
             setInfo()
         }
     }

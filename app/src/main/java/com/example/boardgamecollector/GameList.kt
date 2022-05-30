@@ -16,7 +16,7 @@ class GameList : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
     private lateinit var binding: ActivityGameListBinding
     private var spinner: Spinner? = null
-    private var sortList = arrayOf (DBHandler.COLUMN_TITLE, DBHandler.COLUMN_RELEASED)
+    private var sortList = arrayOf (DBHandler.COLUMN_TITLE, DBHandler.COLUMN_RELEASED, DBHandler.COLUMN_RANK)
     private var order = DBHandler.COLUMN_TITLE
     private lateinit var tableGames: TableLayout
     private var games: MutableList<Game> = mutableListOf()
@@ -40,6 +40,10 @@ class GameList : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
         tableGames = findViewById(R.id.tableGames)
 
+        findViewById<Button>(R.id.buttonSort1).setOnClickListener {
+            showData()
+        }
+
         showData()
     }
 
@@ -50,7 +54,9 @@ class GameList : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         }
     }
 
-    override fun onNothingSelected(arg0: AdapterView<*>) {}
+    override fun onNothingSelected(arg0: AdapterView<*>) {
+        order = DBHandler.COLUMN_TITLE
+    }
 
     private fun showData(){
         tableGames.removeAllViews()
@@ -64,6 +70,7 @@ class GameList : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         for (i in 0..DBHandler.GAMES_COUNT){
             db.findGame(i, order)?.let { games.add(it) }
         }
+        db.close()
     }
 
 
@@ -235,7 +242,6 @@ class GameList : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 trSep.addView(tvSep)
                 tableGames.addView(trSep, trParamsSep)
             }
-
 
         }
         val trDate = TableRow(this)
