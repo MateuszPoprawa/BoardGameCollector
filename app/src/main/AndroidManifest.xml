@@ -3,14 +3,28 @@
     package="com.example.boardgamecollector">
 
     <uses-permission android:name="android.permission.INTERNET" />
+
     <application
-        android:usesCleartextTraffic="true"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.BoardGameCollector">
+        android:theme="@style/Theme.BoardGameCollector"
+        android:usesCleartextTraffic="true">
+        <activity
+            android:name=".ExtensionList"
+            android:exported="false"
+            android:label="@string/title_activity_extension_list"
+            android:theme="@style/Theme.BoardGameCollector.NoActionBar" />
+        <activity
+            android:name=".GameList"
+            android:exported="false"
+            android:label="@string/title_activity_game_list"
+            android:theme="@style/Theme.BoardGameCollector.NoActionBar" />
+        <activity
+            android:name=".SynchronizationScreen"
+            android:exported="false" />
         <activity
             android:name=".ConfigurationScreen"
             android:exported="false" />

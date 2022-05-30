@@ -17,6 +17,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         val db = DBHandler(this, null, null, 1)
+        db.create()
         val configuration = !File("$filesDir/user.txt").exists()
 
         if (configuration) {
@@ -31,8 +32,25 @@ class MainActivity : AppCompatActivity() {
             DBHandler.GAMES_COUNT = 0
             DBHandler.EXTENSIONS_COUNT = 0
             DBHandler.SYNCHRONIZATION_DATE = ""
+            DBHandler.SYNCHRONIZATION_TIME = ""
+
         }
         setInfo()
+
+        findViewById<Button>(R.id.gameList_Button).setOnClickListener {
+            val intent = Intent(this, GameList::class.java)
+            activityLauncher.launch(intent)
+        }
+
+        findViewById<Button>(R.id.extensionList_Button).setOnClickListener {
+            val intent = Intent(this, ExtensionList::class.java)
+            activityLauncher.launch(intent)
+        }
+
+        findViewById<Button>(R.id.synchronization_Button).setOnClickListener {
+            val intent = Intent(this, SynchronizationScreen::class.java)
+            activityLauncher.launch(intent)
+        }
 
         findViewById<Button>(R.id.clear_Button).setOnClickListener {
             db.deleteDB("$filesDir")

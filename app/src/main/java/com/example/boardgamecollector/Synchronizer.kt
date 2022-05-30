@@ -1,17 +1,20 @@
 package com.example.boardgamecollector
 
+import android.content.Context
 import android.os.AsyncTask
+import android.widget.ProgressBar
+import androidx.lifecycle.ViewModel
 import java.io.*
 import java.net.MalformedURLException
 import java.net.URL
 import java.util.*
 
-class Synchronizer {
+
+class Synchronizer(){
     private var query = ""
     var fileName = ""
     var filesDir = ""
-
-    fun start(f: String): String{
+    fun start(f: String, c: Context): String{
         filesDir = f
         var link = "https://www.boardgamegeek.com/xmlapi2/collection?username=" + DBHandler.USER_NAME
         var file = "collection"
@@ -26,12 +29,13 @@ class Synchronizer {
             r = downloadFile(link, file)
             if(r != "Success")
                 return "Synchronization error: $r"
-            if (xml.checkGame(FileInputStream("$filesDir/XML/$file.xml")))
+            if (xml.checkGame(FileInputStream("$filesDir/XML/$file.xml"), item, c))
                 DBHandler.GAMES_COUNT += 1
             else
                 DBHandler.EXTENSIONS_COUNT += 1
         }
         DBHandler.SYNCHRONIZATION_DATE = currentDate(true)
+        DBHandler.SYNCHRONIZATION_TIME = Calendar.getInstance().timeInMillis.toString()
         saveToFile()
         return "Synchronization complete"
     }
@@ -52,8 +56,18 @@ class Synchronizer {
         var result = "$year-$month-$day"
         if(hour)
         {
-            val h = calendar.get(Calendar.HOUR_OF_DAY).toString()
-            val min = calendar.get((Calendar.MINUTE)).toString()
+            val intHour = calendar.get(Calendar.HOUR_OF_DAY)
+            val h = if (intHour < 10)
+                "0$intHour"
+            else
+                intHour.toString()
+
+            val intMin = calendar.get((Calendar.MINUTE))
+            val min = if (intMin <10)
+                "0$intMin"
+            else
+                intMin.toString()
+
             result += " $h:$min"
         }
         return result
@@ -62,7 +76,7 @@ class Synchronizer {
     private fun saveToFile(){
         val file = File("$filesDir/user.txt")
         val text = DBHandler.USER_NAME + "\n" + DBHandler.GAMES_COUNT.toString() + "\n" +
-                DBHandler.EXTENSIONS_COUNT.toString() + "\n" + DBHandler.SYNCHRONIZATION_DATE
+                DBHandler.EXTENSIONS_COUNT.toString() + "\n" + DBHandler.SYNCHRONIZATION_DATE + "\n" + DBHandler.SYNCHRONIZATION_TIME
         file.writeText(text)
     }
 
@@ -76,16 +90,10 @@ class Synchronizer {
 
     @Suppress("DEPRECATION")
     private inner class XmlDownloader: AsyncTask<String, Int, String>() {
-        @Deprecated("Deprecated in Java",
-            ReplaceWith("super.onPreExecute()", "android.os.AsyncTask")
-        )
         override fun onPreExecute(){
             super.onPreExecute()
         }
 
-        @Deprecated("Deprecated in Java",
-            ReplaceWith("super.onPostExecute(result)", "android.os.AsyncTask")
-        )
         override fun onPostExecute(result: String?) {
             super.onPostExecute(result)
         }

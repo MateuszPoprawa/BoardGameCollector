@@ -1,5 +1,6 @@
 package com.example.boardgamecollector
 
+import android.content.Context
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserFactory
 import java.io.InputStream
@@ -32,7 +33,7 @@ class XmlAnalyzer {
     fun checkCollection(input: InputStream): ArrayList<String>{
         xpp.setInput(input, null)
         var tagName:String
-        var gameID = ""
+        var gameID: String
         var eventType: Int = xpp.eventType
         val idList = ArrayList<String>()
         while (eventType != XmlPullParser.END_DOCUMENT) {
@@ -49,7 +50,7 @@ class XmlAnalyzer {
         return idList
     }
 
-    fun checkGame(input: InputStream): Boolean{
+    fun checkGame(input: InputStream, gameID: String, c: Context): Boolean{
 
         xpp.setInput(input, null)
         var eventType: Int = xpp.eventType
@@ -83,6 +84,11 @@ class XmlAnalyzer {
             eventType = xpp.next()
         }
         input.close()
+        val db = DBHandler(c, null, null, 1)
+        if (type == "boardgame")
+            db.addGame(title, date, rank, img, gameID.toLong())
+        else
+            db.addExtension(title, date, img, gameID.toLong())
         return type == "boardgame"
     }
 

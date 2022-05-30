@@ -38,7 +38,7 @@ class ConfigurationScreen : AppCompatActivity() {
     private fun checkResult(){
         if  (foundUser) {
             val sync = Synchronizer()
-            val result = sync.start("$filesDir")
+            val result = sync.start("$filesDir", applicationContext)
             Toast.makeText(applicationContext, result, Toast.LENGTH_SHORT).show()
             if (result == "Synchronization complete")
                 finish()
@@ -49,18 +49,13 @@ class ConfigurationScreen : AppCompatActivity() {
 
     @Suppress("DEPRECATION")
     private inner class XmlDownloader: AsyncTask<String, Int, String>() {
-        @Deprecated("Deprecated in Java",
-            ReplaceWith("super.onPreExecute()", "android.os.AsyncTask")
-        )
+
         override fun onPreExecute(){
             super.onPreExecute()
             val p =  findViewById<ProgressBar>(R.id.progressBar)
             p.visibility = android.view.View.VISIBLE
         }
 
-        @Deprecated("Deprecated in Java",
-            ReplaceWith("super.onPostExecute(result)", "android.os.AsyncTask")
-        )
         override fun onPostExecute(result: String?) {
             super.onPostExecute(result)
             val p =  findViewById<ProgressBar>(R.id.progressBar)
