@@ -9,6 +9,7 @@ import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import java.io.*
+import java.lang.Exception
 import java.net.MalformedURLException
 import java.net.URL
 
@@ -18,6 +19,10 @@ class ConfigurationScreen : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_configuration_screen)
+
+        val db = DBHandler(this, null, null, 1)
+        db.deleteDB("$filesDir")
+
         val button = findViewById<Button>(R.id.button)
         button.setOnClickListener { searchUser() }
     }
@@ -28,6 +33,9 @@ class ConfigurationScreen : AppCompatActivity() {
     }
 
     private fun searchUser() {
+        val db = DBHandler(this, null, null, 1)
+        db.create()
+        db.close()
         val userName: EditText = findViewById(R.id.editTextUserName)
         DBHandler.USER_NAME = userName.text.toString()
         userName.setText("")
@@ -38,31 +46,45 @@ class ConfigurationScreen : AppCompatActivity() {
     private fun checkResult(){
         if  (foundUser) {
             val sync = Synchronizer()
-            val result = sync.start("$filesDir", applicationContext)
-            Toast.makeText(applicationContext, result, Toast.LENGTH_SHORT).show()
+            val result = sync.start("$filesDir", applicationContext, findViewById(R.id.progressBar))
+            runOnUiThread {
+                Toast.makeText(applicationContext, result, Toast.LENGTH_SHORT).show()
+            }
             if (result == "Synchronization complete")
                 finish()
+            else {
+                val db = DBHandler(this, null, null, 1)
+                db.deleteDB("$filesDir")
+            }
         }
-        else
+        else {
             DBHandler.USER_NAME = ""
+            findViewById<ProgressBar>(R.id.progressBar).visibility = android.view.View.GONE
+        }
     }
 
     @Suppress("DEPRECATION")
     private inner class XmlDownloader: AsyncTask<String, Int, String>() {
 
+        @Deprecated("Deprecated in Java")
         override fun onPreExecute(){
             super.onPreExecute()
             val p =  findViewById<ProgressBar>(R.id.progressBar)
             p.visibility = android.view.View.VISIBLE
         }
 
+        @Deprecated("Deprecated in Java")
         override fun onPostExecute(result: String?) {
             super.onPostExecute(result)
-            val p =  findViewById<ProgressBar>(R.id.progressBar)
-            p.visibility = android.view.View.GONE
             Toast.makeText(applicationContext, result, Toast.LENGTH_LONG).show()
             foundUser = result == "User Found"
-            checkResult()
+            Thread {
+                try {
+                    checkResult()
+                } catch (ex: Exception) {
+                    ex.printStackTrace()
+                }
+            }.start()
         }
 
         @Deprecated("Deprecated in Java")

@@ -7,11 +7,12 @@ import android.widget.Button
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.DialogFragment
 import java.io.File
 import java.io.FileNotFoundException
 import kotlin.system.exitProcess
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), ClearDialogFragment.NoticeDialogListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -54,10 +55,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<Button>(R.id.clear_Button).setOnClickListener {
-            db.deleteDB("$filesDir")
-            db.close()
-            finish()
-            exitProcess(0)
+            showNoticeDialog()
         }
     }
 
@@ -76,6 +74,22 @@ class MainActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.gamesCount).text = DBHandler.GAMES_COUNT.toString()
         findViewById<TextView>(R.id.expansionsCount).text = DBHandler.EXTENSIONS_COUNT.toString()
         findViewById<TextView>(R.id.lastSync).text = DBHandler.SYNCHRONIZATION_DATE
+    }
+
+    private fun showNoticeDialog() {
+        val dialog = ClearDialogFragment()
+        dialog.show(supportFragmentManager, "NoticeDialogFragment")
+    }
+
+    override fun onDialogPositiveClick(dialog: DialogFragment) {
+        val db = DBHandler(this, null, null, 1)
+        db.deleteDB("$filesDir")
+        finish()
+        exitProcess(0)
+    }
+
+    override fun onDialogNegativeClick(dialog: DialogFragment) {
+
     }
 
 }

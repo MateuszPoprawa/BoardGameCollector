@@ -26,7 +26,6 @@
         android:hint="@string/enter_name"
         android:inputType="textPersonName"
         android:minHeight="48dp"
-        android:text="loutre_on_fire"
         android:textColorHint="#757575"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -49,6 +48,7 @@
 
     <ProgressBar
         android:id="@+id/progressBar"
+        style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="200dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="32dp"

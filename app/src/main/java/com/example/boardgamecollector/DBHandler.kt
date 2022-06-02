@@ -20,7 +20,8 @@ DATABASE_NAME, factory, DATABASE_VERSION) {
             private const val COLUMN_EXTENSION_ID = "extension_id"
             const val COLUMN_RANK = "rank"
             private const val COLUMN_IMAGE = "image"
-            private const val COLUMN_DATE = "date"
+            const val COLUMN_DATE = "date"
+            private const val COLUMN_HOUR = "hour"
             var USER_NAME = ""
             var GAMES_COUNT = 0
             var EXTENSIONS_COUNT = 0
@@ -46,11 +47,11 @@ DATABASE_NAME, factory, DATABASE_VERSION) {
                 )
         db.execSQL(createExtensionsTable)
 
-        val createHistoricalPositionTable: String = (
+        val createHistoricalRankTable: String = (
         "CREATE TABLE IF NOT EXISTS " + TABLE_HISTORICAL + "("  + COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 COLUMN_TITLE + " TEXT, " + COLUMN_RANK + " INTEGER, " + COLUMN_DATE +
-                " DATE " + ")" )
-        db.execSQL(createHistoricalPositionTable)
+                " DATE, " + COLUMN_HOUR + " TEXT " + ")" )
+        db.execSQL(createHistoricalRankTable)
 
         db.close()
     }
@@ -81,12 +82,13 @@ DATABASE_NAME, factory, DATABASE_VERSION) {
         val db = this.writableDatabase
         db.execSQL("DROP TABLE IF EXISTS $TABLE_GAMES")
         db.execSQL("DROP TABLE IF EXISTS $TABLE_EXTENSIONS")
-        db.execSQL("DROP TABLE IF EXISTS $TABLE_HISTORICAL")
+        //db.execSQL("DROP TABLE IF EXISTS $TABLE_HISTORICAL")
         db.close()
         val file = File("$filesDir/user.txt")
         file.delete()
         GAMES_COUNT = 0
         EXTENSIONS_COUNT = 0
+        db.close()
     }
 
     fun addGame(title: String, date: Int, rank: Int, img: String, gameID: Long){
@@ -134,7 +136,9 @@ DATABASE_NAME, factory, DATABASE_VERSION) {
 
     fun findExtension(pos:Int, order:String):Extension? {
 
-        val query = "SELECT * FROM  $TABLE_EXTENSIONS $order"
+        var query = "SELECT * FROM  $TABLE_EXTENSIONS ORDER BY $order"
+        if (order == COLUMN_RELEASED)
+            query += " DESC"
         val db = this.writableDatabase
         val cursor = db.rawQuery(query, null)
         var ext: Extension? = null
@@ -149,5 +153,49 @@ DATABASE_NAME, factory, DATABASE_VERSION) {
         return ext
     }
 
+    fun addRank(t: String, rank: Int, date: String, hour: String){
+        val db = this.writableDatabase
+        val title = t.replace("\'","\'\'")
+        val query = "SELECT * FROM $TABLE_HISTORICAL WHERE $COLUMN_TITLE LIKE '$title' ORDER BY $COLUMN_DATE DESC, $COLUMN_HOUR DESC"
+        val cursor = db.rawQuery(query, null)
+        var add = true
+        if(cursor.moveToFirst()){
+            val oldRank = cursor.getInt(2)
+            val oldDate = cursor.getString(3)
+            if(oldRank == rank)
+                add = false
+            if (date == oldDate)
+                add = false
+        }
+        if (add){
+            val values = ContentValues()
+            values.put(COLUMN_TITLE, t)
+            values.put(COLUMN_RANK, rank)
+            values.put(COLUMN_DATE, date)
+            values.put(COLUMN_HOUR,hour)
+            db.insert(TABLE_HISTORICAL, null, values)
+        }
+        cursor.close()
+        db.close()
+    }
+
+    fun findHistory(t: String): MutableList<History>{
+        val title1 = t.replace("\'","\'\'")
+        val list: MutableList<History> = ArrayList()
+        val db = this.writableDatabase
+        val query = "SELECT * FROM $TABLE_HISTORICAL WHERE $COLUMN_TITLE LIKE '$title1' ORDER BY $COLUMN_DATE DESC, $COLUMN_HOUR DESC"
+        val cursor = db.rawQuery(query, null)
+        var i = 0
+        while (cursor.moveToNext()){
+            val title = cursor.getString(1)
+            val rank = cursor.getInt(2)
+            val date = cursor.getString(3)
+            val h = History(i, title, rank, date)
+            list.add(h)
+            i += 1
+        }
+        cursor.close()
+        return list
+    }
 
 }

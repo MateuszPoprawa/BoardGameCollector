@@ -1,5 +1,6 @@
 package com.example.boardgamecollector
 
+import android.content.Intent
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.os.Bundle
@@ -8,6 +9,7 @@ import android.view.Gravity
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.widget.NestedScrollView
 import com.example.boardgamecollector.databinding.ActivityGameListBinding
 import java.net.URL
 
@@ -21,6 +23,10 @@ class GameList : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private lateinit var tableGames: TableLayout
     private var games: MutableList<Game> = mutableListOf()
     private var name = "List of games"
+    private val gamesOnPage = 50
+    private var pageCount: Int = DBHandler.GAMES_COUNT/gamesOnPage
+    private val onLastPage = DBHandler.GAMES_COUNT%gamesOnPage
+    private var pageNumber: Int = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,6 +47,7 @@ class GameList : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         tableGames = findViewById(R.id.tableGames)
 
         findViewById<Button>(R.id.buttonSort1).setOnClickListener {
+            pageNumber = 0
             showData()
         }
 
@@ -67,8 +74,12 @@ class GameList : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private fun loadGames(){
         val db = DBHandler(this, null, null, 1)
         games = mutableListOf()
-        for (i in 0..DBHandler.GAMES_COUNT){
-            db.findGame(i, order)?.let { games.add(it) }
+        val n: Int = if (pageNumber == pageCount)
+            onLastPage
+        else
+            gamesOnPage
+        for (i in 0..n){
+            db.findGame(i + (pageNumber*gamesOnPage), order)?.let { games.add(it) }
         }
         db.close()
     }
@@ -80,16 +91,15 @@ class GameList : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         val topRowMargin = 0
         val rightRowMargin = 0
         val bottomRowMargin = 0
-        var textSize = 0
-        var smallTextSize = 0
-        var mediumTextSize = 0
 
-        textSize = resources.getDimension(R.dimen.font_size_verysmall).toInt()
-        smallTextSize = resources.getDimension(R.dimen.font_size_small).toInt()
-        mediumTextSize = resources.getDimension(R.dimen.font_size_medium).toInt()
-        val rows = DBHandler.GAMES_COUNT
+        val textSize: Int = resources.getDimension(R.dimen.font_size_verysmall).toInt()
+        val smallTextSize: Int = resources.getDimension(R.dimen.font_size_small).toInt()
+        val mediumTextSize: Int = resources.getDimension(R.dimen.font_size_medium).toInt()
+        val rows: Int = if (pageNumber != pageCount)
+            gamesOnPage
+        else onLastPage
         supportActionBar!!.title = "Games"
-        var textSpacer: TextView? = null
+        var textSpacer: TextView?
 
 
         for (i in -1 until rows) {
@@ -132,17 +142,20 @@ class GameList : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 tv2.setBackgroundColor(Color.parseColor("#ffffff"))
             } else {
                 tv2.setBackgroundColor(Color.parseColor("#ffffff"))
-                Thread {
-                    try {
-                        val url = URL(row?.Img)
-                        val bmp = BitmapFactory.decodeStream(url.openConnection().getInputStream())
-                        runOnUiThread(java.lang.Runnable {
-                            tv2.setImageBitmap(bmp)
-                        })
-                    } catch (ex: Exception) {
-                        ex.printStackTrace()
-                    }
-                }.start()
+                if (row?.Img != "") {
+                    Thread {
+                        try {
+                            val url = URL(row?.Img)
+                            val bmp =
+                                BitmapFactory.decodeStream(url.openConnection().getInputStream())
+                            runOnUiThread {
+                                tv2.setImageBitmap(bmp)
+                            }
+                        } catch (ex: Exception) {
+                            ex.printStackTrace()
+                        }
+                    }.start()
+                }
             }
 
             val layCustomer = LinearLayout(this)
@@ -207,9 +220,18 @@ class GameList : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 tv4.setTextSize(TypedValue.COMPLEX_UNIT_PX, mediumTextSize.toFloat())
             }
 
-            // add table row
             val tr = TableRow(this)
             tr.id = i + 1
+            if(i > -1) {
+                tr.setOnClickListener {
+                    if (row != null) {
+                        val intent = Intent(this, HistoryScreen::class.java)
+                        intent.putExtra("name", row.Title)
+                        startActivity(intent)
+                    }
+                }
+            }
+
             val trParams = TableLayout.LayoutParams(TableLayout.LayoutParams.MATCH_PARENT,
                 TableLayout.LayoutParams.MATCH_PARENT)
             trParams.setMargins(leftRowMargin, topRowMargin, rightRowMargin, bottomRowMargin)
@@ -244,6 +266,31 @@ class GameList : AppCompatActivity(), AdapterView.OnItemSelectedListener {
             }
 
         }
+
+        if (pageNumber != pageCount) {
+            val nextButton = Button(this)
+            nextButton.text = getString(R.string.next_page)
+            nextButton.setBackgroundColor(Color.GREEN)
+            nextButton.setOnClickListener {
+                pageNumber += 1
+                findViewById<NestedScrollView>(R.id.scrollView).fullScroll(View.FOCUS_UP)
+                showData()
+            }
+            tableGames.addView(nextButton)
+        }
+
+        if (pageNumber != 0) {
+            val prevButton = Button(this)
+            prevButton.text = getString(R.string.prev_page)
+            prevButton.setBackgroundColor(Color.CYAN)
+            prevButton.setOnClickListener {
+                pageNumber -= 1
+                findViewById<NestedScrollView>(R.id.scrollView).fullScroll(View.FOCUS_UP)
+                showData()
+            }
+            tableGames.addView(prevButton)
+        }
+
         val trDate = TableRow(this)
         val trParamsSep = TableLayout.LayoutParams(TableLayout.LayoutParams.MATCH_PARENT,
             TableLayout.LayoutParams.WRAP_CONTENT)

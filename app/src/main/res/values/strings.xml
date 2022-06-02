@@ -19,4 +19,7 @@
     <string name="sort">Sort</string>
     <string name="title_activity_extension_list">Extensions</string>
     <string name="large_text">Large text</string>
+    <string name="title_activity_history_screen">HistoryScreen</string>
+    <string name="next_page">Next page</string>
+    <string name="prev_page">Previous page</string>
 </resources>

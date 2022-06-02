@@ -1,46 +1,62 @@
 package com.example.boardgamecollector
 
 import android.content.Context
-import android.os.AsyncTask
 import android.widget.ProgressBar
-import androidx.lifecycle.ViewModel
 import java.io.*
+import java.lang.Thread.sleep
+import java.net.HttpURLConnection
 import java.net.MalformedURLException
 import java.net.URL
 import java.util.*
 
 
-class Synchronizer(){
+class Synchronizer {
     private var query = ""
-    var fileName = ""
-    var filesDir = ""
-    fun start(f: String, c: Context): String{
+    private var fileName = ""
+    private var filesDir = ""
+    private lateinit var progress: ProgressBar
+    private val file = "collection"
+    fun start(f: String, c: Context, p: ProgressBar): String{
+        progress = p
         filesDir = f
         var link = "https://www.boardgamegeek.com/xmlapi2/collection?username=" + DBHandler.USER_NAME
-        var file = "collection"
-        var r = downloadFile(link, file)
+        var r = downloadFile(link)
+        while (r == "wait"){
+            sleep(5000)
+            r = downloadFile(link)
+        }
         if(r != "Success")
             return "Synchronization error: $r"
         val xml = XmlAnalyzer()
         val idList: ArrayList<String> = xml.checkCollection(FileInputStream("$filesDir/XML/$file.xml"))
-        for (item in idList){
-            link = "https://boardgamegeek.com/xmlapi2/thing?id=$item&stats=1"
-            file = "gameTemp"
-            r = downloadFile(link, file)
-            if(r != "Success")
-                return "Synchronization error: $r"
-            if (xml.checkGame(FileInputStream("$filesDir/XML/$file.xml"), item, c))
-                DBHandler.GAMES_COUNT += 1
-            else
-                DBHandler.EXTENSIONS_COUNT += 1
+        p.max  = idList.count()
+
+        link = "https://boardgamegeek.com/xmlapi2/collection?username=${DBHandler.USER_NAME}&stats=1&excludesubtype=boardgameexpansion"
+        r = downloadFile(link)
+        while (r == "wait"){
+            sleep(5000)
+            r = downloadFile(link)
         }
+        if(r != "Success")
+            return "Synchronization error: $r"
+        xml.addCollection(FileInputStream("$filesDir/XML/$file.xml"), c, p, true)
+        link = "https://boardgamegeek.com/xmlapi2/collection?username=${DBHandler.USER_NAME}&stats=1&subtype=boardgameexpansion"
+        r = downloadFile(link)
+        while (r == "wait"){
+            sleep(5000)
+            r = downloadFile(link)
+        }
+        if(r != "Success")
+            return "Synchronization error: $r"
+        xml.addCollection(FileInputStream("$filesDir/XML/$file.xml"), c, p, false)
+
         DBHandler.SYNCHRONIZATION_DATE = currentDate(true)
         DBHandler.SYNCHRONIZATION_TIME = Calendar.getInstance().timeInMillis.toString()
         saveToFile()
         return "Synchronization complete"
     }
 
-    private fun currentDate(hour:Boolean): String {
+    fun currentDate(hour:Boolean): String {
         val calendar = Calendar.getInstance()
         val intDay = calendar.get(Calendar.DATE)
         val day = if (intDay < 10)
@@ -56,21 +72,26 @@ class Synchronizer(){
         var result = "$year-$month-$day"
         if(hour)
         {
-            val intHour = calendar.get(Calendar.HOUR_OF_DAY)
-            val h = if (intHour < 10)
-                "0$intHour"
-            else
-                intHour.toString()
-
-            val intMin = calendar.get((Calendar.MINUTE))
-            val min = if (intMin <10)
-                "0$intMin"
-            else
-                intMin.toString()
-
-            result += " $h:$min"
+            result += " " + currentHour()
         }
         return result
+    }
+
+    fun currentHour(): String{
+        val calendar = Calendar.getInstance()
+        val intHour = calendar.get(Calendar.HOUR_OF_DAY)
+        val h = if (intHour < 10)
+            "0$intHour"
+        else
+            intHour.toString()
+
+        val intMin = calendar.get((Calendar.MINUTE))
+        val min = if (intMin <10)
+            "0$intMin"
+        else
+            intMin.toString()
+
+        return "$h:$min"
     }
 
     private fun saveToFile(){
@@ -80,55 +101,59 @@ class Synchronizer(){
         file.writeText(text)
     }
 
-    private fun downloadFile(q:String, f:String):String {
+
+    private fun downloadFile(q:String): String{
         query = q
-        fileName = f
-        val xml = XmlDownloader()
-        return xml.execute().get()
-    }
-
-
-    @Suppress("DEPRECATION")
-    private inner class XmlDownloader: AsyncTask<String, Int, String>() {
-        override fun onPreExecute(){
-            super.onPreExecute()
-        }
-
-        override fun onPostExecute(result: String?) {
-            super.onPostExecute(result)
-        }
-
-        @Deprecated("Deprecated in Java")
-        override fun doInBackground(vararg p0: String?): String {
-            try {
-                val url = URL(query)
-                val connection = url.openConnection()
-                connection.connect()
-                val isStream = url.openStream()
-                val directory = File("$filesDir/XML")
-                if (!directory.exists()) directory.mkdir()
-                val fos = FileOutputStream("$directory/$fileName.xml")
-                val data = ByteArray(1024)
-                var count: Int
-                var total: Long = 0
+        fileName = file
+        try {
+            val url = URL(query)
+            val connection = url.openConnection() as HttpURLConnection
+            connection.connect()
+            if (connection.responseCode == 202){
+                return "wait"
+            }
+            val isStream: InputStream = url.openStream()
+            val directory = File("$filesDir/XML")
+            if (!directory.exists()) directory.mkdir()
+            val fos = FileOutputStream("$directory/$fileName.xml")
+            val data = ByteArray(1024)
+            var count: Int
+            var total: Long = 0
+            count = isStream.read(data)
+            while (count != -1) {
+                total += count.toLong()
+                fos.write(data, 0, count)
                 count = isStream.read(data)
-                while (count != -1) {
-                    total += count.toLong()
-                    fos.write(data, 0, count)
-                    count = isStream.read(data)
-                }
-                isStream.close()
-                fos.close()
-                return "Success"
-            } catch (e: MalformedURLException){
-                return "Malformed URL"
             }
-            catch (e: FileNotFoundException){
-                return "File Not Found"
-            }
-            catch (e: IOException){
-                return "IO Exception"
-            }
+            isStream.close()
+            fos.close()
+            return "Success"
+        } catch (e: MalformedURLException){
+            return "Malformed URL"
+        }
+        catch (e: IOException){
+            return "IO Exception"
+        }
+        catch (e: FileNotFoundException){
+            return "File Not Found"
         }
     }
 }
+
+/*
+       for (item in idList){
+           link = "https://boardgamegeek.com/xmlapi2/thing?id=$item&stats=1"
+           file = "gameTemp"
+           r = downloadFile(link, file)
+           if(r != "Success" && r != "Skip") {
+               return "Synchronization error: $r"
+           }
+           if (r != "Skip"){
+               if (xml.checkGame(FileInputStream("$filesDir/XML/$file.xml"), item, c))
+                   DBHandler.GAMES_COUNT += 1
+               else
+                   DBHandler.EXTENSIONS_COUNT += 1
+           }
+           p.progress += 1
+       }
+        */

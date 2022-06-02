@@ -6,14 +6,13 @@ import android.content.Context
 import android.os.Bundle
 import androidx.fragment.app.DialogFragment
 
-class StartSynchronizationDialogFragment: DialogFragment() {
+class ClearDialogFragment: DialogFragment() {
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         return activity?.let {
             val builder = AlertDialog.Builder(it)
 
-            builder.setMessage("Do you want to start synchronization? \n " +
-                    "(Note: Ranking history is updated once a day)")
-                .setPositiveButton("Start"
+            builder.setMessage("Do you want to clear data?")
+                .setPositiveButton("Yes"
                 ) { _, _ ->
                     listener.onDialogPositiveClick(this)
                 }

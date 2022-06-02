@@ -1,8 +1,6 @@
 package com.example.boardgamecollector
 
 import android.app.Activity
-import android.content.Context
-import android.os.AsyncTask
 import android.os.Bundle
 import android.widget.Button
 import android.widget.ProgressBar
@@ -10,18 +8,6 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.DialogFragment
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.FileNotFoundException
-import java.io.FileOutputStream
-import java.io.IOException
-import java.lang.Exception
-import java.net.MalformedURLException
-import java.net.URL
 import java.util.*
 
 class SynchronizationScreen : AppCompatActivity(), StartSynchronizationDialogFragment.NoticeDialogListener {
@@ -60,10 +46,16 @@ class SynchronizationScreen : AppCompatActivity(), StartSynchronizationDialogFra
         db.deleteDB("$filesDir")
         db.create()
         val sync = Synchronizer()
-        val result = sync.start("$filesDir", applicationContext)
-        Toast.makeText(applicationContext, result, Toast.LENGTH_SHORT).show()
-        if (result == "Synchronization complete")
+        val result = sync.start("$filesDir", applicationContext, findViewById(R.id.progressBar2))
+        runOnUiThread {
+            Toast.makeText(applicationContext, result, Toast.LENGTH_SHORT).show()
+        }
+        if (result == "Synchronization complete") {
+            db.close()
             finish()
+        }
+        else
+            db.deleteDB("$filesDir")
     }
 
     private fun compareDate(): Boolean{
@@ -80,7 +72,13 @@ class SynchronizationScreen : AppCompatActivity(), StartSynchronizationDialogFra
     override fun onDialogPositiveClick(dialog: DialogFragment) {
         val p: ProgressBar = findViewById(R.id.progressBar2)
         p.visibility = android.view.View.VISIBLE
-        synchronization()
+        Thread {
+            try {
+                synchronization()
+            } catch (ex: Exception) {
+                ex.printStackTrace()
+            }
+        }.start()
     }
 
     override fun onDialogNegativeClick(dialog: DialogFragment) {

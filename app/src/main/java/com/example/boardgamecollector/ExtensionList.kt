@@ -8,6 +8,7 @@ import android.view.Gravity
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.widget.NestedScrollView
 import com.example.boardgamecollector.databinding.ActivityExtensionListBinding
 import java.net.URL
 
@@ -20,6 +21,10 @@ class ExtensionList : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private lateinit var tableExtensions: TableLayout
     private var extensions: MutableList<Extension> = mutableListOf()
     private var name = "List of extensions"
+    private val extensionsOnPage = 50
+    private var pageCount: Int = DBHandler.EXTENSIONS_COUNT/extensionsOnPage
+    private val onLastPage = DBHandler.EXTENSIONS_COUNT%extensionsOnPage
+    private var pageNumber: Int = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,6 +45,7 @@ class ExtensionList : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         tableExtensions = findViewById(R.id.tableGames)
 
         findViewById<Button>(R.id.buttonSort2).setOnClickListener {
+            pageNumber = 0
             showData()
         }
 
@@ -65,8 +71,12 @@ class ExtensionList : AppCompatActivity(), AdapterView.OnItemSelectedListener {
     private fun loadGames(){
         val db = DBHandler(this, null, null, 1)
         extensions = mutableListOf()
-        for (i in 0..DBHandler.EXTENSIONS_COUNT){
-            db.findExtension(i, order)?.let { extensions.add(it) }
+        val n: Int = if (pageNumber == pageCount)
+            onLastPage
+        else
+            extensionsOnPage
+        for (i in 0..n){
+            db.findExtension(i + (pageNumber*extensionsOnPage), order)?.let { extensions.add(it) }
         }
         db.close()
     }
@@ -76,16 +86,15 @@ class ExtensionList : AppCompatActivity(), AdapterView.OnItemSelectedListener {
         val topRowMargin = 0
         val rightRowMargin = 0
         val bottomRowMargin = 0
-        var textSize = 0
-        var smallTextSize = 0
-        var mediumTextSize = 0
 
-        textSize = resources.getDimension(R.dimen.font_size_verysmall).toInt()
-        smallTextSize = resources.getDimension(R.dimen.font_size_small).toInt()
-        mediumTextSize = resources.getDimension(R.dimen.font_size_medium).toInt()
-        val rows = DBHandler.EXTENSIONS_COUNT
+        val textSize: Int = resources.getDimension(R.dimen.font_size_verysmall).toInt()
+        val smallTextSize: Int = resources.getDimension(R.dimen.font_size_small).toInt()
+        val mediumTextSize: Int = resources.getDimension(R.dimen.font_size_medium).toInt()
+        val rows: Int = if (pageNumber != pageCount)
+            extensionsOnPage
+        else onLastPage
         supportActionBar!!.title = "Extensions"
-        var textSpacer: TextView? = null
+        var textSpacer: TextView?
 
 
         for (i in -1 until rows) {
@@ -127,17 +136,20 @@ class ExtensionList : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 tv2.setBackgroundColor(Color.parseColor("#ffffff"))
             } else {
                 tv2.setBackgroundColor(Color.parseColor("#ffffff"))
-                Thread {
-                    try {
-                        val url = URL(row?.Img)
-                        val bmp = BitmapFactory.decodeStream(url.openConnection().getInputStream())
-                        runOnUiThread(java.lang.Runnable {
-                            tv2.setImageBitmap(bmp)
-                        })
-                    } catch (ex: Exception) {
-                        ex.printStackTrace()
-                    }
-                }.start()
+                if (row?.Img != "") {
+                    Thread {
+                        try {
+                            val url = URL(row?.Img)
+                            val bmp =
+                                BitmapFactory.decodeStream(url.openConnection().getInputStream())
+                            runOnUiThread {
+                                tv2.setImageBitmap(bmp)
+                            }
+                        } catch (ex: Exception) {
+                            ex.printStackTrace()
+                        }
+                    }.start()
+                }
             }
 
             val layCustomer = LinearLayout(this)
@@ -152,7 +164,7 @@ class ExtensionList : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 tv3.setPadding(5, 5, 0, 5)
                 tv3.setTextSize(TypedValue.COMPLEX_UNIT_PX, smallTextSize.toFloat())
             } else {
-                tv3.layoutParams = TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT,
+                tv3.layoutParams = TableRow.LayoutParams(600,
                     TableRow.LayoutParams.MATCH_PARENT)
                 tv3.setPadding(5, 0, 0, 5)
                 tv3.setTextSize(TypedValue.COMPLEX_UNIT_PX, textSize.toFloat())
@@ -185,8 +197,6 @@ class ExtensionList : AppCompatActivity(), AdapterView.OnItemSelectedListener {
                 layCustomer.addView(tv3b)
             }
 
-
-            // add table row
             val tr = TableRow(this)
             tr.id = i + 1
             val trParams = TableLayout.LayoutParams(TableLayout.LayoutParams.MATCH_PARENT,
@@ -223,6 +233,31 @@ class ExtensionList : AppCompatActivity(), AdapterView.OnItemSelectedListener {
 
 
         }
+
+        if (pageNumber != pageCount) {
+            val nextButton = Button(this)
+            nextButton.text = getString(R.string.next_page)
+            nextButton.setBackgroundColor(Color.GREEN)
+            nextButton.setOnClickListener {
+                pageNumber += 1
+                findViewById<NestedScrollView>(R.id.scrollView).fullScroll(View.FOCUS_UP)
+                showData()
+            }
+            tableExtensions.addView(nextButton)
+        }
+
+        if (pageNumber != 0) {
+            val prevButton = Button(this)
+            prevButton.text = getString(R.string.prev_page)
+            prevButton.setBackgroundColor(Color.CYAN)
+            prevButton.setOnClickListener {
+                pageNumber -= 1
+                findViewById<NestedScrollView>(R.id.scrollView).fullScroll(View.FOCUS_UP)
+                showData()
+            }
+            tableExtensions.addView(prevButton)
+        }
+
         val trDate = TableRow(this)
         val trParamsSep = TableLayout.LayoutParams(TableLayout.LayoutParams.MATCH_PARENT,
             TableLayout.LayoutParams.WRAP_CONTENT)

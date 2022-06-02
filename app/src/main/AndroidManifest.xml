@@ -13,6 +13,11 @@
         android:theme="@style/Theme.BoardGameCollector"
         android:usesCleartextTraffic="true">
         <activity
+            android:name=".HistoryScreen"
+            android:exported="false"
+            android:label="@string/title_activity_history_screen"
+            android:theme="@style/Theme.BoardGameCollector.NoActionBar" />
+        <activity
             android:name=".ExtensionList"
             android:exported="false"
             android:label="@string/title_activity_extension_list"
