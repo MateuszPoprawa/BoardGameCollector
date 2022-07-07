@@ -53,7 +53,7 @@ DATABASE_NAME, factory, DATABASE_VERSION) {
                 " DATE, " + COLUMN_HOUR + " TEXT " + ")" )
         db.execSQL(createHistoricalRankTable)
 
-        db.close()
+        //db.close()
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
