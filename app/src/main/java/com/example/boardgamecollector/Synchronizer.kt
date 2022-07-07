@@ -110,7 +110,7 @@ class Synchronizer {
             val connection = url.openConnection() as HttpURLConnection
             connection.connect()
             if (connection.responseCode == 202){
-                    return "wait"
+                return "wait"
             }
             val isStream: InputStream = url.openStream()
             val directory = File("$filesDir/XML")
